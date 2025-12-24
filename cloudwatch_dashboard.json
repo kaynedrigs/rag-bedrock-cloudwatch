@@ -1,0 +1,34 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["AWS/Bedrock", "Invocations", "ModelId", "REPLACE_MODEL_ID"]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "title": "Bedrock Invocations"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          ["AWS/Bedrock", "InvocationLatency", "ModelId", "REPLACE_MODEL_ID"]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "title": "Bedrock Invocation Latency"
+      }
+    }
+  ]
+}
