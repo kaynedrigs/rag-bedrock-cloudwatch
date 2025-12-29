@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Base Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9fafb;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-user {
+            text-align: right;
+        }
+
+        .message-bubble {
+            display: inline-block;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message-user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-assistant .message-bubble {
+            background: white;
+            color: #1f2937;
+            border: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        .citations {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+
+        .citation-item {
+            background: #f3f4f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 4px 4px 0 0;
+        }
+
+        .input-container {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 0 0 16px 16px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+        }
+
+        #queryInput {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 24px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #queryInput:focus {
+            border-color: #667eea;
+        }
+
+        #sendBtn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        #sendBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .error {
+            color: #ef4444;
+            padding: 12px;
+            background: #fee2e2;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Knowledge Base Chat</h1>
+            <p>Ask me anything about your knowledge base!</p>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message message-assistant">
+                <div class="message-bubble">
+                    Hello! I'm your knowledge base assistant. Ask me questions about the content in your knowledge base!
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <div class="input-wrapper">
+                <input 
+                    type="text" 
+                    id="queryInput" 
+                    placeholder="Ask a question..." 
+                    autocomplete="off"
+                />
+                <button id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // TODO: Replace with your actual API Gateway endpoint URL
+        // Format: https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/YOUR_STAGE
+        const API_URL = 'https://YOUR_API_ID.execute-api.YOUR_REGION.amazonaws.com/YOUR_STAGE';
+        let sessionId = null;
+
+        const chatContainer = document.getElementById('chatContainer');
+        const queryInput = document.getElementById('queryInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function addMessage(text, isUser = false, citations = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'message-user' : 'message-assistant'}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+            
+            messageDiv.appendChild(bubbleDiv);
+            
+            if (citations && citations.length > 0) {
+                const citationsDiv = document.createElement('div');
+                citationsDiv.className = 'citations';
+                citationsDiv.innerHTML = '<strong>Sources:</strong> ';
+                
+                citations.forEach((citation, idx) => {
+                    if (citation.retrievedReferences && citation.retrievedReferences.length > 0) {
+                        citation.retrievedReferences.forEach(ref => {
+                            if (ref.location && ref.location.s3Location) {
+                                const citationSpan = document.createElement('span');
+                                citationSpan.className = 'citation-item';
+                                const fileName = ref.location.s3Location.uri.split('/').pop();
+                                citationSpan.textContent = fileName;
+                                citationsDiv.appendChild(citationSpan);
+                            }
+                        });
+                    }
+                });
+                
+                bubbleDiv.appendChild(citationsDiv);
+            }
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message message-assistant';
+            loadingDiv.id = 'loading';
+            loadingDiv.innerHTML = '<div class="message-bubble"><span class="loading"></span><span class="loading" style="margin-left:8px"></span><span class="loading" style="margin-left:8px"></span></div>';
+            chatContainer.appendChild(loadingDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function hideLoading() {
+            const loading = document.getElementById('loading');
+            if (loading) loading.remove();
+        }
+
+        async function sendQuery() {
+            const query = queryInput.value.trim();
+            if (!query) return;
+
+            addMessage(query, true);
+            queryInput.value = '';
+            sendBtn.disabled = true;
+            showLoading();
+
+            try {
+                const payload = { query };
+                if (sessionId) payload.sessionId = sessionId;
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                hideLoading();
+
+                if (response.ok) {
+                    sessionId = data.sessionId;
+                    addMessage(data.answer, false, data.citations);
+                } else {
+                    addMessage(`Error: ${data.error || 'Something went wrong'}`, false);
+                }
+            } catch (error) {
+                hideLoading();
+                addMessage(`Error: ${error.message}`, false);
+            } finally {
+                sendBtn.disabled = false;
+                queryInput.focus();
+            }
+        }
+
+        sendBtn.addEventListener('click', sendQuery);
+        queryInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendQuery();
+        });
+
+        queryInput.focus();
+    </script>
+</body>
+</html>
