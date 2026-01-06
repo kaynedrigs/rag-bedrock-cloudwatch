@@ -8,7 +8,7 @@
 				"bedrock:Retrieve"
 			],
 			"Resource": [
-				"arn:aws:bedrock:us-east-1:<ACCOUNT_ID>:knowledge-base/<KB-ID>"
+				"arn:aws:bedrock:us-east-1:<ACCOUNT_ID>:knowledge-base/<KNOWLEDGE_BASE_ID>"
 			]
 		},
 		{
